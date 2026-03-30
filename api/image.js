@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   try {
     const html = req.query.html || 'Test';
     
-    const fontResponse = await fetch('https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiA.woff2');
+    const fontResponse = await fetch('https://github.com/google/fonts/raw/main/ofl/inter/Inter%5Bslnt%2Cwght%5D.ttf');
     const fontData = await fontResponse.arrayBuffer();
 
     const svg = await satori(
