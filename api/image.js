@@ -1,8 +1,8 @@
-const satori = require('satori');
-const sharp = require('sharp');
-
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   try {
+    const { default: satori } = await import('satori');
+    const sharp = require('sharp');
+    
     const html = req.query.html || 'Test';
     
     const svg = await satori(
@@ -10,16 +10,14 @@ module.exports = async (req, res) => {
         type: 'div',
         props: {
           style: {
-            width: '600px',
-            height: '500px',
+            width: 600,
+            height: 500,
             backgroundColor: '#0f1923',
             color: 'white',
-            fontFamily: 'Arial',
-            padding: '20px',
+            padding: 20,
             display: 'flex',
-            flexDirection: 'column',
           },
-          children: html
+          children: String(html)
         }
       },
       {
@@ -36,4 +34,4 @@ module.exports = async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
-};
+}
