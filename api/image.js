@@ -1,10 +1,15 @@
+import satori from 'satori';
+import sharp from 'sharp';
+
+export const config = { runtime: 'nodejs' };
+
 export default async function handler(req, res) {
   try {
-    const { default: satori } = await import('satori');
-    const sharp = require('sharp');
-    
     const html = req.query.html || 'Test';
     
+    const fontResponse = await fetch('https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiA.woff2');
+    const fontData = await fontResponse.arrayBuffer();
+
     const svg = await satori(
       {
         type: 'div',
@@ -14,6 +19,7 @@ export default async function handler(req, res) {
             height: 500,
             backgroundColor: '#0f1923',
             color: 'white',
+            fontFamily: 'Inter',
             padding: 20,
             display: 'flex',
           },
@@ -23,12 +29,15 @@ export default async function handler(req, res) {
       {
         width: 600,
         height: 500,
-        fonts: []
+        fonts: [{
+          name: 'Inter',
+          data: fontData,
+          style: 'normal'
+        }]
       }
     );
 
     const png = await sharp(Buffer.from(svg)).png().toBuffer();
-    
     res.setHeader('Content-Type', 'image/png');
     res.send(png);
   } catch (e) {
