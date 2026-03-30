@@ -1,27 +1,39 @@
-const chromium = require('@sparticuz/chromium');
-const puppeteer = require('puppeteer-core');
+const satori = require('satori');
+const sharp = require('sharp');
 
 module.exports = async (req, res) => {
-  const html = req.query.html || req.body?.html || '';
-  
-  const browser = await puppeteer.launch({
-    args: chromium.args,
-    defaultViewport: { width: 600, height: 500 },
-    executablePath: await chromium.executablePath(),
-    headless: chromium.headless,
-  });
+  try {
+    const html = req.query.html || 'Test';
+    
+    const svg = await satori(
+      {
+        type: 'div',
+        props: {
+          style: {
+            width: '600px',
+            height: '500px',
+            backgroundColor: '#0f1923',
+            color: 'white',
+            fontFamily: 'Arial',
+            padding: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+          },
+          children: html
+        }
+      },
+      {
+        width: 600,
+        height: 500,
+        fonts: []
+      }
+    );
 
-  const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: 'networkidle0' });
-  
-  const screenshot = await page.screenshot({ 
-    type: 'png',
-    clip: { x: 0, y: 0, width: 600, height: 500 }
-  });
-  
-  await browser.close();
-  
-  res.setHeader('Content-Type', 'image/png');
-  res.setHeader('Cache-Control', 'public, max-age=3600');
-  res.send(screenshot);
+    const png = await sharp(Buffer.from(svg)).png().toBuffer();
+    
+    res.setHeader('Content-Type', 'image/png');
+    res.send(png);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 };
