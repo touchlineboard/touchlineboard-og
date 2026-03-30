@@ -1,6 +1,7 @@
 {
   "name": "touchlineboard-og",
   "version": "1.0.0",
+  "type": "module",
   "dependencies": {
     "satori": "0.10.13",
     "sharp": "0.33.3"
