@@ -344,15 +344,16 @@ function renderPlayerCard(d) {
           type: 'div',
           props: {
             style: {
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: 12,
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'space-between',
               marginBottom: 12
             },
             children: stats.map((s) => ({
               type: 'div',
               props: {
                 style: {
+                  width: 270,
                   borderRadius: 16,
                   border: '1px solid rgba(255,255,255,0.08)',
                   background: 'rgba(0,0,0,0.28)',
@@ -361,7 +362,9 @@ function renderPlayerCard(d) {
                   alignItems: 'center',
                   justifyContent: 'center',
                   padding: '12px 10px',
-                  minHeight: 100
+                  minHeight: 100,
+                  marginBottom: 12,
+                  boxSizing: 'border-box'
                 },
                 children: [
                   {
