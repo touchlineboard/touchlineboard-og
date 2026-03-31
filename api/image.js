@@ -107,16 +107,17 @@ export default async function handler(req, res) {
           {
             type: 'div',
             props: {
-              style: { display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '30px 20px', gap: 20 },
+              style: { display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '25px 20px', gap: 20 },
               children: [
                 // Home team
                 {
                   type: 'div',
                   props: {
-                    style: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 170, height: 60 },
+                    style: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 170 },
                     children: [
-                      { type: 'span', props: { style: { fontSize: 20, fontWeight: 'bold', textAlign: 'center', color: homeWin ? '#fff' : '#888' }, children: d.homeTeam || 'Home' } }
-                    ]
+                      d.homeLogo ? { type: 'img', props: { src: d.homeLogo, width: 50, height: 50, style: { marginBottom: 8 } } } : null,
+                      { type: 'span', props: { style: { fontSize: 18, fontWeight: 'bold', textAlign: 'center', color: homeWin ? '#fff' : '#888' }, children: d.homeTeam || 'Home' } }
+                    ].filter(Boolean)
                   }
                 },
                 // Score box
@@ -135,10 +136,11 @@ export default async function handler(req, res) {
                 {
                   type: 'div',
                   props: {
-                    style: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 170, height: 60 },
+                    style: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 170 },
                     children: [
-                      { type: 'span', props: { style: { fontSize: 20, fontWeight: 'bold', textAlign: 'center', color: awayWin ? '#fff' : '#888' }, children: d.awayTeam || 'Away' } }
-                    ]
+                      d.awayLogo ? { type: 'img', props: { src: d.awayLogo, width: 50, height: 50, style: { marginBottom: 8 } } } : null,
+                      { type: 'span', props: { style: { fontSize: 18, fontWeight: 'bold', textAlign: 'center', color: awayWin ? '#fff' : '#888' }, children: d.awayTeam || 'Away' } }
+                    ].filter(Boolean)
                   }
                 }
               ]
@@ -148,7 +150,7 @@ export default async function handler(req, res) {
           {
             type: 'div',
             props: {
-              style: { display: 'flex', justifyContent: 'center', marginBottom: 20 },
+              style: { display: 'flex', justifyContent: 'center', marginBottom: 15 },
               children: { type: 'span', props: { style: { fontSize: 11, color: '#555' }, children: d.venue ? `📍 ${d.venue}` : '' } }
             }
           },
@@ -156,13 +158,13 @@ export default async function handler(req, res) {
           {
             type: 'div',
             props: {
-              style: { display: 'flex', flexDirection: 'column', margin: '0 24px', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 16, padding: '22px 24px', flex: 1, border: '1px solid rgba(255,255,255,0.05)' },
+              style: { display: 'flex', flexDirection: 'column', margin: '0 24px', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 16, padding: '20px 24px', flex: 1, border: '1px solid rgba(255,255,255,0.05)' },
               children: [
                 // Stats header
                 {
                   type: 'div',
                   props: {
-                    style: { display: 'flex', justifyContent: 'center', marginBottom: 18 },
+                    style: { display: 'flex', justifyContent: 'center', marginBottom: 16 },
                     children: { type: 'span', props: { style: { fontSize: 10, color: '#555', textTransform: 'uppercase', letterSpacing: 2 }, children: 'Match Statistics' } }
                   }
                 },
@@ -176,7 +178,7 @@ export default async function handler(req, res) {
                   return {
                     type: 'div',
                     props: {
-                      style: { display: 'flex', alignItems: 'center', marginBottom: i < 5 ? 14 : 0, height: 28 },
+                      style: { display: 'flex', alignItems: 'center', marginBottom: i < 5 ? 12 : 0, height: 26 },
                       children: [
                         { type: 'span', props: { style: { width: 36, fontSize: 14, fontWeight: 'bold', color: homeColor, textAlign: 'left' }, children: String(stat.home) } },
                         {
@@ -214,7 +216,7 @@ export default async function handler(req, res) {
           {
             type: 'div',
             props: {
-              style: { display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '16px 0', gap: 6 },
+              style: { display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '14px 0', gap: 6 },
               children: [
                 { type: 'span', props: { style: { fontSize: 9, color: '#444' }, children: 'Generated by' } },
                 { type: 'span', props: { style: { fontSize: 9, color: '#00ff88', fontWeight: 'bold' }, children: 'TouchlineBoard' } },
