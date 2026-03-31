@@ -20,6 +20,42 @@ function parseData(raw) {
   }
 }
 
+function safeImageSrc(v, fallback) {
+  const value = safeString(v).trim();
+  return value || fallback;
+}
+
+function normalizeSatoriTree(node) {
+  if (!node || typeof node !== 'object') return node;
+
+  const props = node.props || {};
+  const style = props.style || {};
+  const children = props.children;
+  const childList = Array.isArray(children) ? children.filter(Boolean) : [children].filter(Boolean);
+  const hasStructuredChild = Array.isArray(children)
+    ? children.some((child) => child && typeof child !== 'string')
+    : !!children && typeof children !== 'string';
+
+  if (node.type === 'div' && hasStructuredChild) {
+    if (!style.display) {
+      style.display = 'flex';
+    }
+    if (style.display === 'flex' && !style.flexDirection) {
+      style.flexDirection = 'column';
+    }
+    props.style = style;
+  }
+
+  if (Array.isArray(children)) {
+    props.children = children.map((child) => normalizeSatoriTree(child));
+  } else if (children && typeof children === 'object') {
+    props.children = normalizeSatoriTree(children);
+  }
+
+  node.props = props;
+  return node;
+}
+
 async function loadFonts() {
   const fonts = [];
   try {
@@ -196,7 +232,7 @@ function renderPlayerCard(d) {
                     {
                       type: 'img',
                       props: {
-                        src: safeString(d.playerPhoto, 'https://cdn-icons-png.flaticon.com/512/149/149071.png'),
+                        src: safeImageSrc(d.playerPhoto, 'https://cdn-icons-png.flaticon.com/512/149/149071.png'),
                         width: 100,
                         height: 100,
                         style: {
@@ -236,7 +272,7 @@ function renderPlayerCard(d) {
                                   ? {
                                       type: 'img',
                                       props: {
-                                        src: safeString(d.teamLogo),
+                                        src: safeImageSrc(d.teamLogo, 'https://cdn-icons-png.flaticon.com/512/149/149071.png'),
                                         width: 28,
                                         height: 28,
                                         style: { width: 28, height: 28, objectFit: 'contain' }
@@ -552,7 +588,7 @@ function renderLineupCard(d) {
                       ? {
                           type: 'img',
                           props: {
-                            src: safeString(d.homeLogo),
+                            src: safeImageSrc(d.homeLogo, 'https://cdn-icons-png.flaticon.com/512/149/149071.png'),
                             width: 34,
                             height: 34,
                             style: { width: 34, height: 34, objectFit: 'contain' }
@@ -582,7 +618,7 @@ function renderLineupCard(d) {
                       ? {
                           type: 'img',
                           props: {
-                            src: safeString(d.awayLogo),
+                            src: safeImageSrc(d.awayLogo, 'https://cdn-icons-png.flaticon.com/512/149/149071.png'),
                             width: 34,
                             height: 34,
                             style: { width: 34, height: 34, objectFit: 'contain' }
@@ -681,7 +717,7 @@ function renderMatchStatsCard(d) {
                       ? {
                           type: 'img',
                           props: {
-                            src: safeString(d.homeLogo),
+                            src: safeImageSrc(d.homeLogo, 'https://cdn-icons-png.flaticon.com/512/149/149071.png'),
                             width: 42,
                             height: 42,
                             style: { width: 42, height: 42, objectFit: 'contain' }
@@ -709,7 +745,7 @@ function renderMatchStatsCard(d) {
                       ? {
                           type: 'img',
                           props: {
-                            src: safeString(d.awayLogo),
+                            src: safeImageSrc(d.awayLogo, 'https://cdn-icons-png.flaticon.com/512/149/149071.png'),
                             width: 42,
                             height: 42,
                             style: { width: 42, height: 42, objectFit: 'contain' }
@@ -827,6 +863,7 @@ export default async function handler(req, res) {
     const type = safeString(req.query.type || 'player').toLowerCase();
     const data = parseData(req.query.data);
     const card = buildCard(type, data);
+    normalizeSatoriTree(card.node);
     const fonts = await loadFonts();
 
     const svg = await satori(card.node, {
