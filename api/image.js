@@ -1,624 +1,827 @@
-import satori from 'satori';
-import sharp from 'sharp';
+const fontRegularUrl = 'https://cdn.jsdelivr.net/gh/googlefonts/noto-fonts@main/hinted/ttf/NotoSans/NotoSans-Regular.ttf';
+const fontBoldUrl = 'https://cdn.jsdelivr.net/gh/googlefonts/noto-fonts@main/hinted/ttf/NotoSans/NotoSans-Bold.ttf';
 
-export const config = { runtime: 'nodejs' };
-
-function safeParseData(raw) {
-  if (!raw) return {};
-  const candidates = [raw];
-
-  try {
-    const decoded = decodeURIComponent(raw);
-    if (decoded !== raw) candidates.push(decoded);
-  } catch (_) {}
-
-  for (const c of candidates) {
-    try {
-      return JSON.parse(c);
-    } catch (_) {}
-  }
-  return {};
-}
-
-function txt(v, fallback = '') {
-  if (v === null || v === undefined || v === '') return fallback;
+function safeString(v, fallback = '') {
+  if (v === null || v === undefined) return fallback;
   return String(v);
 }
 
-function playerShortName(full) {
-  const clean = txt(full).trim();
-  if (!clean) return '-';
-  const parts = clean.split(/\s+/);
-  return parts[parts.length - 1];
+function toNumber(v, fallback = 0) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
 }
 
-function kickoffTR(iso) {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
+function parseData(raw) {
+  if (!raw) return {};
   try {
-    return new Intl.DateTimeFormat('tr-TR', {
-      timeZone: 'Europe/Istanbul',
-      day: '2-digit',
-      month: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(d);
+    return typeof raw === 'string' ? JSON.parse(raw) : raw;
   } catch (_) {
-    return '';
+    return {};
   }
 }
 
-async function fetchFirstFont(urls) {
-  for (const url of urls) {
-    try {
-      const r = await fetch(url);
-      if (!r.ok) continue;
-      return await r.arrayBuffer();
-    } catch (_) {}
-  }
-  throw new Error('Font download failed');
+async function loadFonts() {
+  const fonts = [];
+  try {
+    const reg = await fetch(fontRegularUrl).then((r) => r.arrayBuffer());
+    fonts.push({ name: 'Noto Sans', data: reg, weight: 400, style: 'normal' });
+  } catch (_) {}
+  try {
+    const bold = await fetch(fontBoldUrl).then((r) => r.arrayBuffer());
+    fonts.push({ name: 'Noto Sans', data: bold, weight: 700, style: 'normal' });
+  } catch (_) {}
+  return fonts;
 }
 
-function brandHeader(rightLabel = 'TouchlineBoard') {
+function bgShell(width, height, content) {
   return {
     type: 'div',
     props: {
       style: {
+        width,
+        height,
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '16px 24px',
+        flexDirection: 'column',
+        background:
+          'radial-gradient(circle at 88% 10%, rgba(50,255,190,0.18), transparent 28%), radial-gradient(circle at 10% 100%, rgba(0,163,255,0.15), transparent 32%), linear-gradient(135deg, #07111f 0%, #0a1427 55%, #060d1a 100%)',
+        color: '#EAF0FF',
+        fontFamily: 'Noto Sans',
+        padding: '34px 36px',
+        boxSizing: 'border-box',
+        position: 'relative'
       },
       children: [
         {
           type: 'div',
           props: {
-            style: { display: 'flex', alignItems: 'center', gap: 10 },
+            style: {
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              top: 0,
+              height: 6,
+              background: 'linear-gradient(90deg,#00ff95,#00c7ff,#ff4d77)'
+            }
+          }
+        },
+        content
+      ]
+    }
+  };
+}
+
+function brandHeader(tagText) {
+  return {
+    type: 'div',
+    props: {
+      style: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 18
+      },
+      children: [
+        {
+          type: 'div',
+          props: {
+            style: { display: 'flex', alignItems: 'center', gap: 14 },
             children: [
               {
                 type: 'div',
                 props: {
                   style: {
+                    width: 44,
+                    height: 44,
+                    borderRadius: 10,
+                    background: 'linear-gradient(135deg,#00ff95,#19b7ff)',
+                    color: '#04111f',
                     display: 'flex',
-                    width: 28,
-                    height: 28,
-                    borderRadius: 6,
-                    background: 'linear-gradient(135deg, #00ff88 0%, #00cc6a 100%)',
-                    alignItems: 'center',
                     justifyContent: 'center',
+                    alignItems: 'center',
+                    fontWeight: 700,
+                    fontSize: 26
                   },
-                  children: {
-                    type: 'span',
-                    props: { style: { fontSize: 14, fontWeight: 'bold', color: '#000' }, children: 'T' },
-                  },
-                },
+                  children: 'T'
+                }
               },
               {
-                type: 'span',
+                type: 'div',
                 props: {
-                  style: { fontSize: 11, fontWeight: 'bold', color: '#fff', letterSpacing: 1.5, textTransform: 'uppercase' },
-                  children: 'TouchlineBoard',
-                },
-              },
-            ],
-          },
+                  style: {
+                    fontSize: 34,
+                    fontWeight: 700,
+                    letterSpacing: 2,
+                    textTransform: 'uppercase'
+                  },
+                  children: 'TOUCHLINEBOARD'
+                }
+              }
+            ]
+          }
+        },
+        {
+          type: 'div',
+          props: {
+            style: {
+              borderRadius: 999,
+              border: '1px solid rgba(255,255,255,0.15)',
+              padding: '8px 18px',
+              fontSize: 20,
+              color: '#BFC8DC',
+              textTransform: 'uppercase',
+              letterSpacing: 1.2
+            },
+            children: tagText
+          }
+        }
+      ]
+    }
+  };
+}
+
+function renderPlayerCard(d) {
+  const stats = Array.isArray(d.statItems) ? d.statItems.slice(0, 8) : [];
+  while (stats.length < 8) stats.push({ label: '-', value: '0' });
+
+  const rating = toNumber(d.rating, 0);
+  const ratingColor = rating >= 8 ? '#1BFFB4' : rating >= 7 ? '#35D7FF' : '#FF5A8A';
+  const minutes = Math.max(0, Math.min(120, toNumber(d.minutes, 0)));
+  const minutePct = Math.round((minutes / 120) * 100);
+
+  const content = {
+    type: 'div',
+    props: {
+      style: { display: 'flex', flexDirection: 'column', height: '100%' },
+      children: [
+        brandHeader('Player Stats'),
+        {
+          type: 'div',
+          props: {
+            style: {
+              textAlign: 'center',
+              color: '#9FB0CC',
+              fontSize: 32,
+              marginBottom: 18
+            },
+            children:
+              safeString(d.homeTeam, 'Home') +
+              ' ' +
+              safeString(d.homeGoals, 0) +
+              ' - ' +
+              safeString(d.awayGoals, 0) +
+              ' ' +
+              safeString(d.awayTeam, 'Away')
+          }
         },
         {
           type: 'div',
           props: {
             style: {
               display: 'flex',
-              padding: '6px 14px',
-              borderRadius: 20,
-              backgroundColor: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.12)',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderRadius: 24,
+              border: '1px solid rgba(255,255,255,0.08)',
+              background: 'rgba(255,255,255,0.04)',
+              padding: '20px 22px',
+              marginBottom: 16
             },
-            children: {
-              type: 'span',
-              props: {
-                style: { fontSize: 10, color: '#9aa4b3', textTransform: 'uppercase', letterSpacing: 1 },
-                children: rightLabel,
+            children: [
+              {
+                type: 'div',
+                props: {
+                  style: { display: 'flex', alignItems: 'center', gap: 16 },
+                  children: [
+                    {
+                      type: 'img',
+                      props: {
+                        src: safeString(d.playerPhoto, 'https://cdn-icons-png.flaticon.com/512/149/149071.png'),
+                        width: 100,
+                        height: 100,
+                        style: {
+                          width: 100,
+                          height: 100,
+                          borderRadius: 999,
+                          border: '5px solid ' + ratingColor,
+                          objectFit: 'cover'
+                        }
+                      }
+                    },
+                    {
+                      type: 'div',
+                      props: {
+                        style: { display: 'flex', flexDirection: 'column' },
+                        children: [
+                          {
+                            type: 'div',
+                            props: {
+                              style: { fontSize: 54, fontWeight: 700, lineHeight: 1.05 },
+                              children: safeString(d.playerName, 'Unknown Player')
+                            }
+                          },
+                          {
+                            type: 'div',
+                            props: {
+                              style: {
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 10,
+                                marginTop: 4,
+                                fontSize: 30,
+                                color: '#AAB7D0'
+                              },
+                              children: [
+                                d.teamLogo
+                                  ? {
+                                      type: 'img',
+                                      props: {
+                                        src: safeString(d.teamLogo),
+                                        width: 28,
+                                        height: 28,
+                                        style: { width: 28, height: 28, objectFit: 'contain' }
+                                      }
+                                    }
+                                  : null,
+                                safeString(d.teamName, 'Team') + '  •  ' + safeString(d.position, '-')
+                              ].filter(Boolean)
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
               },
-            },
-          },
+              {
+                type: 'div',
+                props: {
+                  style: { display: 'flex', flexDirection: 'column', alignItems: 'center', width: 170 },
+                  children: [
+                    {
+                      type: 'div',
+                      props: {
+                        style: {
+                          width: 140,
+                          height: 116,
+                          borderRadius: 24,
+                          background: ratingColor,
+                          color: '#05111E',
+                          display: 'flex',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          fontWeight: 700,
+                          fontSize: 64
+                        },
+                        children: safeString(d.rating, '0.0')
+                      }
+                    },
+                    {
+                      type: 'div',
+                      props: {
+                        style: {
+                          marginTop: 10,
+                          letterSpacing: 2,
+                          fontSize: 20,
+                          color: '#8D9BB6',
+                          textTransform: 'uppercase'
+                        },
+                        children: 'Rating'
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
-      ],
-    },
+        {
+          type: 'div',
+          props: {
+            style: {
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              borderRadius: 16,
+              background: 'rgba(0,0,0,0.32)',
+              padding: '10px 14px',
+              marginBottom: 14
+            },
+            children: [
+              {
+                type: 'div',
+                props: {
+                  style: { width: 66, fontSize: 28, color: '#9FB0CC' },
+                  children: safeString(minutes) + "'"
+                }
+              },
+              {
+                type: 'div',
+                props: {
+                  style: {
+                    flex: 1,
+                    height: 14,
+                    borderRadius: 999,
+                    background: 'rgba(255,255,255,0.12)',
+                    overflow: 'hidden'
+                  },
+                  children: {
+                    type: 'div',
+                    props: {
+                      style: {
+                        width: minutePct + '%',
+                        height: '100%',
+                        borderRadius: 999,
+                        background: 'linear-gradient(90deg,#00ff95,#00d9ff)'
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          type: 'div',
+          props: {
+            style: {
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: 12,
+              marginBottom: 12
+            },
+            children: stats.map((s) => ({
+              type: 'div',
+              props: {
+                style: {
+                  borderRadius: 16,
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  background: 'rgba(0,0,0,0.28)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '12px 10px',
+                  minHeight: 100
+                },
+                children: [
+                  {
+                    type: 'div',
+                    props: {
+                      style: { fontSize: 42, fontWeight: 700, color: '#FFD93D', lineHeight: 1.05 },
+                      children: safeString(s.value, '0')
+                    }
+                  },
+                  {
+                    type: 'div',
+                    props: {
+                      style: { fontSize: 22, color: '#98A7C4', marginTop: 2 },
+                      children: safeString(s.label, '-')
+                    }
+                  }
+                ]
+              }
+            }))
+          }
+        },
+        {
+          type: 'div',
+          props: {
+            style: {
+              marginTop: 4,
+              textAlign: 'center',
+              color: '#7A8AA8',
+              fontSize: 20
+            },
+            children: 'Generated by TouchlineBoard • AI-Powered Stats'
+          }
+        }
+      ]
+    }
   };
+
+  return { width: 1200, height: 900, node: bgShell(1200, 900, content) };
 }
 
-function renderPlayerCard(d) {
-  const rating = parseFloat(d.rating) || 0;
-  const ratingColor = rating >= 8 ? '#00ff88' : rating >= 7 ? '#ffcc00' : rating > 0 ? '#ff4466' : '#888';
-  const minutes = Number(d.minutes || 0);
-  const minutesPercent = Math.min(Math.round((minutes / 90) * 100), 100);
+function renderLineupCard(d) {
+  const homeXI = Array.isArray(d.homeXI) ? d.homeXI.slice(0, 11) : [];
+  const awayXI = Array.isArray(d.awayXI) ? d.awayXI.slice(0, 11) : [];
+  const rows = Math.max(homeXI.length, awayXI.length, 11);
+  const rowHeight = 42;
+  const totalHeight = Math.min(1320, 420 + rows * rowHeight + 140);
 
-  const statCards = [
-    { label: 'Goals', value: txt(d.goals, '0') },
-    { label: 'Assists', value: txt(d.assists, '0') },
-    { label: 'Passes', value: txt(d.passes, '0') },
-    { label: 'Pass Acc', value: d.accuracy !== undefined && d.accuracy !== '' ? `${d.accuracy}%` : '0%' },
-    { label: 'Shots', value: txt(d.shots, '0') },
-    { label: 'Key Passes', value: txt(d.keyPasses, '0') },
-    { label: 'Tackles', value: txt(d.tackles, '0') },
-    { label: 'Duels', value: `${txt(d.duelsWon, '0')}/${txt(d.duelsTotal, '0')}` },
-  ];
-
-  return {
-    width: 600,
-    height: 620,
-    tree: {
-      type: 'div',
-      props: {
-        style: {
-          width: 600,
-          height: 620,
-          background: 'linear-gradient(135deg, #0d1117 0%, #161b22 50%, #0d1117 100%)',
-          display: 'flex',
-          flexDirection: 'column',
-          fontFamily: 'Noto Sans',
-          color: 'white',
-          position: 'relative',
-          overflow: 'hidden',
+  const lineupCol = (title, formation, players) => ({
+    type: 'div',
+    props: {
+      style: {
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        borderRadius: 18,
+        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'rgba(255,255,255,0.03)',
+        padding: '14px 14px 10px 14px'
+      },
+      children: [
+        {
+          type: 'div',
+          props: {
+            style: {
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 8
+            },
+            children: [
+              {
+                type: 'div',
+                props: { style: { fontSize: 30, fontWeight: 700 }, children: safeString(title, '-') }
+              },
+              {
+                type: 'div',
+                props: {
+                  style: {
+                    fontSize: 20,
+                    color: '#A6B5CF',
+                    borderRadius: 999,
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    padding: '4px 12px'
+                  },
+                  children: safeString(formation || '-', '-')
+                }
+              }
+            ]
+          }
         },
-        children: [
-          {
-            type: 'div',
-            props: {
-              style: {
-                position: 'absolute',
-                top: -50,
-                right: -50,
-                width: 250,
-                height: 250,
-                borderRadius: '50%',
-                background: `radial-gradient(circle, ${ratingColor}22 0%, transparent 70%)`,
-                display: 'flex',
-              },
-              children: '',
+        {
+          type: 'div',
+          props: {
+            style: {
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 6,
+              flex: 1
             },
-          },
-          { type: 'div', props: { style: { display: 'flex', width: '100%', height: 3, background: 'linear-gradient(90deg, #00ff88, #00d4ff, #ff4466)' }, children: '' } },
-          brandHeader('Player Stats'),
-          {
-            type: 'div',
-            props: {
-              style: { display: 'flex', justifyContent: 'center', marginBottom: 10 },
-              children: {
-                type: 'span',
-                props: { style: { fontSize: 12, color: '#768192' }, children: `${txt(d.homeTeam)} ${txt(d.homeGoals, '0')} - ${txt(d.awayGoals, '0')} ${txt(d.awayTeam)}` },
-              },
-            },
-          },
-          {
-            type: 'div',
-            props: {
-              style: {
-                display: 'flex',
-                alignItems: 'center',
-                margin: '0 24px',
-                padding: '16px',
-                backgroundColor: 'rgba(255,255,255,0.03)',
-                borderRadius: 16,
-                border: '1px solid rgba(255,255,255,0.06)',
-                gap: 16,
-              },
-              children: [
-                d.playerPhoto
-                  ? { type: 'img', props: { src: d.playerPhoto, width: 68, height: 68, style: { borderRadius: '50%', border: `3px solid ${ratingColor}` } } }
-                  : null,
-                {
-                  type: 'div',
-                  props: {
-                    style: { display: 'flex', flexDirection: 'column', flex: 1 },
-                    children: [
-                      {
-                        type: 'div',
-                        props: {
-                          style: { display: 'flex', alignItems: 'center', gap: 8 },
-                          children: [
-                            { type: 'span', props: { style: { fontSize: 20, fontWeight: 'bold' }, children: txt(d.playerName, 'Player') } },
-                            d.captain
-                              ? { type: 'span', props: { style: { fontSize: 10, fontWeight: 'bold', backgroundColor: '#ffcc00', color: '#000', padding: '2px 6px', borderRadius: 4 }, children: 'C' } }
-                              : null,
-                          ].filter(Boolean),
-                        },
-                      },
-                      {
-                        type: 'div',
-                        props: {
-                          style: { display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 },
-                          children: [
-                            d.teamLogo ? { type: 'img', props: { src: d.teamLogo, width: 20, height: 20 } } : null,
-                            { type: 'span', props: { style: { fontSize: 13, color: '#9ba6b8' }, children: txt(d.teamName) } },
-                            { type: 'span', props: { style: { fontSize: 12, color: '#6f7784' }, children: `• ${txt(d.position)}` } },
-                          ].filter(Boolean),
-                        },
-                      },
-                    ],
-                  },
+            children: Array.from({ length: 11 }).map((_, i) => ({
+              type: 'div',
+              props: {
+                style: {
+                  minHeight: 34,
+                  borderRadius: 10,
+                  background: 'rgba(0,0,0,0.28)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '4px 10px',
+                  color: players[i] ? '#EAF0FF' : '#66758F',
+                  fontSize: 24
                 },
-                {
-                  type: 'div',
-                  props: {
-                    style: { display: 'flex', flexDirection: 'column', alignItems: 'center' },
-                    children: [
-                      {
-                        type: 'div',
-                        props: {
-                          style: { display: 'flex', backgroundColor: ratingColor, padding: '12px 18px', borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-                          children: { type: 'span', props: { style: { fontSize: 28, fontWeight: 'bold', color: '#000' }, children: txt(d.rating, 'N/A') } },
-                        },
-                      },
-                      { type: 'span', props: { style: { fontSize: 9, color: '#666', marginTop: 4, textTransform: 'uppercase', letterSpacing: 1 }, children: 'Rating' } },
-                    ],
-                  },
-                },
-              ].filter(Boolean),
+                children: (i + 1) + '. ' + safeString(players[i], '-')
+              }
+            }))
+          }
+        }
+      ]
+    }
+  });
+
+  const content = {
+    type: 'div',
+    props: {
+      style: { display: 'flex', flexDirection: 'column', height: '100%' },
+      children: [
+        brandHeader('Official Lineups'),
+        {
+          type: 'div',
+          props: {
+            style: {
+              textAlign: 'center',
+              color: '#DDE6FA',
+              fontSize: 38,
+              fontWeight: 700,
+              marginBottom: 4
             },
-          },
-          {
-            type: 'div',
-            props: {
-              style: { display: 'flex', alignItems: 'center', margin: '14px 24px 12px', padding: '12px 16px', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 10, gap: 12 },
-              children: [
-                { type: 'span', props: { style: { fontSize: 12, color: '#888' }, children: `⏱ ${minutes}'` } },
-                {
-                  type: 'div',
-                  props: {
-                    style: { display: 'flex', flex: 1, height: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' },
-                    children: { type: 'div', props: { style: { width: `${minutesPercent}%`, height: '100%', backgroundColor: '#00ff88', borderRadius: 3 }, children: '' } },
-                  },
-                },
-              ],
+            children: safeString(d.homeTeam, 'Home') + ' vs ' + safeString(d.awayTeam, 'Away')
+          }
+        },
+        {
+          type: 'div',
+          props: {
+            style: {
+              textAlign: 'center',
+              color: '#98A8C6',
+              fontSize: 24,
+              marginBottom: 16
             },
-          },
-          {
-            type: 'div',
-            props: {
-              style: { display: 'flex', flexWrap: 'wrap', margin: '0 24px', gap: 10 },
-              children: statCards.map((s) => ({
+            children:
+              safeString(d.league, '') +
+              (d.round ? ' • ' + safeString(d.round) : '') +
+              (d.kickoff ? ' • ' + safeString(d.kickoff).replace('T', ' ').slice(0, 16) : '')
+          }
+        },
+        {
+          type: 'div',
+          props: {
+            style: {
+              display: 'flex',
+              justifyContent: 'center',
+              gap: 18,
+              marginBottom: 14
+            },
+            children: [
+              {
                 type: 'div',
                 props: {
                   style: {
                     display: 'flex',
-                    width: 130,
-                    height: 78,
-                    flexDirection: 'column',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: 'rgba(0,0,0,0.32)',
-                    borderRadius: 10,
-                    border: '1px solid rgba(255,255,255,0.06)',
+                    gap: 10,
+                    padding: '8px 12px',
+                    borderRadius: 12,
+                    background: 'rgba(0,0,0,0.28)'
                   },
                   children: [
-                    { type: 'span', props: { style: { fontSize: 22, fontWeight: 'bold', color: '#ffcc00', lineHeight: 1.05 }, children: txt(s.value, '0') } },
-                    { type: 'span', props: { style: { fontSize: 10, color: '#777', marginTop: 4 }, children: s.label } },
-                  ],
-                },
-              })),
-            },
-          },
-          {
-            type: 'div',
-            props: {
-              style: { display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '12px 0 14px', marginTop: 10, gap: 6 },
-              children: [
-                { type: 'span', props: { style: { fontSize: 9, color: '#444' }, children: 'Generated by' } },
-                { type: 'span', props: { style: { fontSize: 9, color: '#00ff88', fontWeight: 'bold' }, children: 'TouchlineBoard' } },
-                { type: 'span', props: { style: { fontSize: 9, color: '#444' }, children: '• AI-Powered Stats' } },
-              ],
-            },
-          },
-        ],
-      },
-    },
-  };
-}
-
-function renderLineupCard(d) {
-  const homeXI = Array.isArray(d.homeXI) ? d.homeXI : [];
-  const awayXI = Array.isArray(d.awayXI) ? d.awayXI : [];
-  const homeRows = Array.from({ length: 11 }, (_, i) => playerShortName(homeXI[i]));
-  const awayRows = Array.from({ length: 11 }, (_, i) => playerShortName(awayXI[i]));
-  const ko = kickoffTR(d.kickoff);
-
-  return {
-    width: 600,
-    height: 760,
-    tree: {
-      type: 'div',
-      props: {
-        style: {
-          width: 600,
-          height: 760,
-          background: 'linear-gradient(135deg, #0d1117 0%, #161b22 50%, #0d1117 100%)',
-          display: 'flex',
-          flexDirection: 'column',
-          fontFamily: 'Noto Sans',
-          color: 'white',
-          position: 'relative',
-          overflow: 'hidden',
-        },
-        children: [
-          { type: 'div', props: { style: { display: 'flex', width: '100%', height: 3, background: 'linear-gradient(90deg, #00ff88, #00d4ff, #ff4466)' }, children: '' } },
-          brandHeader('Starting XI'),
-          {
-            type: 'div',
-            props: {
-              style: { display: 'flex', justifyContent: 'center', marginTop: 2 },
-              children: { type: 'span', props: { style: { fontSize: 12, color: '#9aa0aa' }, children: `${txt(d.league)}${d.round ? ` • ${d.round}` : ''}` } },
-            },
-          },
-          {
-            type: 'div',
-            props: {
-              style: { display: 'flex', justifyContent: 'center', marginTop: 6 },
-              children: {
-                type: 'span',
-                props: {
-                  style: { fontSize: 11, color: '#6f7784' },
-                  children: `${d.venue ? `📍 ${d.venue}` : ''}${d.referee ? ` • Ref: ${d.referee}` : ''}${ko ? ` • ${ko}` : ''}`,
-                },
-              },
-            },
-          },
-          {
-            type: 'div',
-            props: {
-              style: {
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 14,
-                margin: '14px 24px 12px',
-                padding: '14px 16px',
-                borderRadius: 14,
-                backgroundColor: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.06)',
-              },
-              children: [
-                {
-                  type: 'div',
-                  props: {
-                    style: { display: 'flex', alignItems: 'center', gap: 8, width: 210 },
-                    children: [
-                      d.homeLogo ? { type: 'img', props: { src: d.homeLogo, width: 26, height: 26 } } : null,
-                      { type: 'span', props: { style: { fontSize: 16, fontWeight: 'bold' }, children: txt(d.homeTeam, 'Home') } },
-                    ].filter(Boolean),
-                  },
-                },
-                {
-                  type: 'div',
-                  props: {
-                    style: { display: 'flex', padding: '6px 12px', borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.08)' },
-                    children: { type: 'span', props: { style: { fontSize: 12, color: '#8aa1c0', textTransform: 'uppercase' }, children: txt(d.statusShort, 'NS') } },
-                  },
-                },
-                {
-                  type: 'div',
-                  props: {
-                    style: { display: 'flex', alignItems: 'center', gap: 8, width: 210, justifyContent: 'flex-end' },
-                    children: [
-                      { type: 'span', props: { style: { fontSize: 16, fontWeight: 'bold' }, children: txt(d.awayTeam, 'Away') } },
-                      d.awayLogo ? { type: 'img', props: { src: d.awayLogo, width: 26, height: 26 } } : null,
-                    ].filter(Boolean),
-                  },
-                },
-              ],
-            },
-          },
-          {
-            type: 'div',
-            props: {
-              style: { display: 'flex', gap: 12, margin: '0 24px' },
-              children: [
-                {
-                  type: 'div',
-                  props: {
-                    style: { display: 'flex', flexDirection: 'column', width: 270, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.30)', border: '1px solid rgba(255,255,255,0.06)', padding: '10px 10px 8px' },
-                    children: [
-                      {
-                        type: 'div',
-                        props: {
-                          style: { display: 'flex', justifyContent: 'space-between', marginBottom: 8 },
-                          children: [
-                            { type: 'span', props: { style: { fontSize: 11, color: '#00ff88', fontWeight: 'bold' }, children: txt(d.homeTeam, 'Home') } },
-                            { type: 'span', props: { style: { fontSize: 10, color: '#8aa1c0' }, children: txt(d.homeFormation, '-') } },
-                          ],
-                        },
-                      },
-                      ...homeRows.map((name, i) => ({
-                        type: 'div',
-                        props: {
-                          style: { display: 'flex', alignItems: 'center', height: 22, borderBottom: i === 10 ? 'none' : '1px solid rgba(255,255,255,0.05)' },
-                          children: [
-                            { type: 'span', props: { style: { width: 18, fontSize: 10, color: '#6f7784' }, children: String(i + 1) } },
-                            { type: 'span', props: { style: { fontSize: 11, color: '#d8e0eb' }, children: name } },
-                          ],
-                        },
-                      })),
-                    ],
-                  },
-                },
-                {
-                  type: 'div',
-                  props: {
-                    style: { display: 'flex', flexDirection: 'column', width: 270, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.30)', border: '1px solid rgba(255,255,255,0.06)', padding: '10px 10px 8px' },
-                    children: [
-                      {
-                        type: 'div',
-                        props: {
-                          style: { display: 'flex', justifyContent: 'space-between', marginBottom: 8 },
-                          children: [
-                            { type: 'span', props: { style: { fontSize: 11, color: '#00d4ff', fontWeight: 'bold' }, children: txt(d.awayTeam, 'Away') } },
-                            { type: 'span', props: { style: { fontSize: 10, color: '#8aa1c0' }, children: txt(d.awayFormation, '-') } },
-                          ],
-                        },
-                      },
-                      ...awayRows.map((name, i) => ({
-                        type: 'div',
-                        props: {
-                          style: { display: 'flex', alignItems: 'center', height: 22, borderBottom: i === 10 ? 'none' : '1px solid rgba(255,255,255,0.05)' },
-                          children: [
-                            { type: 'span', props: { style: { width: 18, fontSize: 10, color: '#6f7784' }, children: String(i + 1) } },
-                            { type: 'span', props: { style: { fontSize: 11, color: '#d8e0eb' }, children: name } },
-                          ],
-                        },
-                      })),
-                    ],
-                  },
-                },
-              ],
-            },
-          },
-          {
-            type: 'div',
-            props: {
-              style: { display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '12px 0 14px', marginTop: 'auto', gap: 6 },
-              children: [
-                { type: 'span', props: { style: { fontSize: 9, color: '#444' }, children: 'Generated by' } },
-                { type: 'span', props: { style: { fontSize: 9, color: '#00ff88', fontWeight: 'bold' }, children: 'TouchlineBoard' } },
-                { type: 'span', props: { style: { fontSize: 9, color: '#444' }, children: '• AI-Powered Lineups' } },
-              ],
-            },
-          },
-        ],
-      },
-    },
-  };
-}
-
-function renderMatchCard(d) {
-  const stats = d.stats || [];
-  const homeWin = (d.homeGoals ?? 0) > (d.awayGoals ?? 0);
-  const awayWin = (d.awayGoals ?? 0) > (d.homeGoals ?? 0);
-  const isDraw = (d.homeGoals ?? 0) === (d.awayGoals ?? 0);
-
-  return {
-    width: 600,
-    height: 680,
-    tree: {
-      type: 'div',
-      props: {
-        style: {
-          width: 600,
-          height: 680,
-          background: 'linear-gradient(135deg, #0d1117 0%, #161b22 50%, #0d1117 100%)',
-          display: 'flex',
-          flexDirection: 'column',
-          fontFamily: 'Noto Sans',
-          color: 'white',
-          position: 'relative',
-          overflow: 'hidden',
-        },
-        children: [
-          { type: 'div', props: { style: { position: 'absolute', top: -100, right: -100, width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,255,136,0.08) 0%, transparent 70%)', display: 'flex' }, children: '' } },
-          { type: 'div', props: { style: { position: 'absolute', bottom: -80, left: -80, width: 250, height: 250, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,68,102,0.06) 0%, transparent 70%)', display: 'flex' }, children: '' } },
-          { type: 'div', props: { style: { display: 'flex', width: '100%', height: 3, background: 'linear-gradient(90deg, #00ff88, #00d4ff, #ff4466)' }, children: '' } },
-          brandHeader('Full Time'),
-          { type: 'div', props: { style: { display: 'flex', justifyContent: 'center', marginTop: 3 }, children: { type: 'span', props: { style: { fontSize: 12, color: '#aaa' }, children: txt(d.league, 'League') } } } },
-          {
-            type: 'div',
-            props: {
-              style: { display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 20px', gap: 20 },
-              children: [
-                { type: 'div', props: { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', width: 170 }, children: [d.homeLogo ? { type: 'img', props: { src: d.homeLogo, width: 50, height: 50, style: { marginBottom: 8 } } } : null, { type: 'span', props: { style: { fontSize: 18, fontWeight: 'bold', color: homeWin ? '#fff' : '#888' }, children: txt(d.homeTeam, 'Home') } }].filter(Boolean) } },
-                { type: 'div', props: { style: { display: 'flex', alignItems: 'center', gap: 8, padding: '15px 25px', borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }, children: [{ type: 'span', props: { style: { fontSize: 48, fontWeight: 'bold', color: homeWin ? '#fff' : isDraw ? '#fff' : '#666' }, children: txt(d.homeGoals, '0') } }, { type: 'span', props: { style: { fontSize: 24, color: '#333' }, children: ':' } }, { type: 'span', props: { style: { fontSize: 48, fontWeight: 'bold', color: awayWin ? '#fff' : isDraw ? '#fff' : '#666' }, children: txt(d.awayGoals, '0') } }] } },
-                { type: 'div', props: { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', width: 170 }, children: [d.awayLogo ? { type: 'img', props: { src: d.awayLogo, width: 50, height: 50, style: { marginBottom: 8 } } } : null, { type: 'span', props: { style: { fontSize: 18, fontWeight: 'bold', color: awayWin ? '#fff' : '#888' }, children: txt(d.awayTeam, 'Away') } }].filter(Boolean) } },
-              ],
-            },
-          },
-          { type: 'div', props: { style: { display: 'flex', justifyContent: 'center', marginBottom: 12 }, children: { type: 'span', props: { style: { fontSize: 11, color: '#666' }, children: d.venue ? `📍 ${d.venue}` : '' } } } },
-          {
-            type: 'div',
-            props: {
-              style: { display: 'flex', flexDirection: 'column', margin: '0 24px', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 16, padding: '20px 24px', flex: 1, border: '1px solid rgba(255,255,255,0.05)' },
-              children: [
-                { type: 'div', props: { style: { display: 'flex', justifyContent: 'center', marginBottom: 14 }, children: { type: 'span', props: { style: { fontSize: 10, color: '#777', textTransform: 'uppercase', letterSpacing: 2 }, children: 'Match Statistics' } } } },
-                ...stats.slice(0, 6).map((stat, i) => {
-                  const homeNum = parseFloat(stat.home) || 0;
-                  const awayNum = parseFloat(stat.away) || 0;
-                  const homeColor = homeNum > awayNum ? '#00ff88' : homeNum < awayNum ? '#ff4466' : '#888';
-                  const awayColor = awayNum > homeNum ? '#00ff88' : awayNum < homeNum ? '#ff4466' : '#888';
-                  return {
-                    type: 'div',
-                    props: {
-                      style: { display: 'flex', alignItems: 'center', marginBottom: i < 5 ? 12 : 0, height: 26 },
-                      children: [
-                        { type: 'span', props: { style: { width: 36, fontSize: 14, fontWeight: 'bold', color: homeColor, textAlign: 'left' }, children: txt(stat.home, '0') } },
-                        {
-                          type: 'div',
+                    d.homeLogo
+                      ? {
+                          type: 'img',
                           props: {
-                            style: { display: 'flex', flex: 1, alignItems: 'center', margin: '0 12px', gap: 10 },
-                            children: [
-                              { type: 'div', props: { style: { display: 'flex', flex: 1, height: 6, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 3, justifyContent: 'flex-end', overflow: 'hidden' }, children: { type: 'div', props: { style: { width: `${stat.homePercent}%`, height: '100%', backgroundColor: homeColor, borderRadius: 3 }, children: '' } } } },
-                              { type: 'span', props: { style: { width: 88, fontSize: 9, color: '#666', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.5, lineHeight: 1.2 }, children: txt(stat.label, '-') } },
-                              { type: 'div', props: { style: { display: 'flex', flex: 1, height: 6, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 3, overflow: 'hidden' }, children: { type: 'div', props: { style: { width: `${stat.awayPercent}%`, height: '100%', backgroundColor: awayColor, borderRadius: 3 }, children: '' } } } },
-                            ],
-                          },
-                        },
-                        { type: 'span', props: { style: { width: 36, fontSize: 14, fontWeight: 'bold', color: awayColor, textAlign: 'right' }, children: txt(stat.away, '0') } },
-                      ],
-                    },
-                  };
-                }),
-              ],
+                            src: safeString(d.homeLogo),
+                            width: 34,
+                            height: 34,
+                            style: { width: 34, height: 34, objectFit: 'contain' }
+                          }
+                        }
+                      : null,
+                    {
+                      type: 'div',
+                      props: { style: { fontSize: 24 }, children: safeString(d.homeTeam, 'Home') }
+                    }
+                  ].filter(Boolean)
+                }
+              },
+              {
+                type: 'div',
+                props: {
+                  style: {
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '8px 12px',
+                    borderRadius: 12,
+                    background: 'rgba(0,0,0,0.28)'
+                  },
+                  children: [
+                    d.awayLogo
+                      ? {
+                          type: 'img',
+                          props: {
+                            src: safeString(d.awayLogo),
+                            width: 34,
+                            height: 34,
+                            style: { width: 34, height: 34, objectFit: 'contain' }
+                          }
+                        }
+                      : null,
+                    {
+                      type: 'div',
+                      props: { style: { fontSize: 24 }, children: safeString(d.awayTeam, 'Away') }
+                    }
+                  ].filter(Boolean)
+                }
+              }
+            ]
+          }
+        },
+        {
+          type: 'div',
+          props: {
+            style: { display: 'flex', gap: 14, marginBottom: 12 },
+            children: [
+              lineupCol(d.homeTeam, d.homeFormation, homeXI),
+              lineupCol(d.awayTeam, d.awayFormation, awayXI)
+            ]
+          }
+        },
+        {
+          type: 'div',
+          props: {
+            style: {
+              display: 'flex',
+              justifyContent: 'space-between',
+              gap: 12,
+              fontSize: 22,
+              color: '#9AABC8'
             },
-          },
-          {
-            type: 'div',
-            props: {
-              style: { display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '12px 0', gap: 6 },
-              children: [
-                { type: 'span', props: { style: { fontSize: 9, color: '#444' }, children: 'Generated by' } },
-                { type: 'span', props: { style: { fontSize: 9, color: '#00ff88', fontWeight: 'bold' }, children: 'TouchlineBoard' } },
-                { type: 'span', props: { style: { fontSize: 9, color: '#444' }, children: '• AI-Powered Stats' } },
-              ],
+            children: [
+              'Venue: ' + safeString(d.venue, 'N/A'),
+              'Referee: ' + safeString(d.referee, 'N/A')
+            ]
+          }
+        },
+        {
+          type: 'div',
+          props: {
+            style: {
+              marginTop: 8,
+              textAlign: 'center',
+              color: '#7A8AA8',
+              fontSize: 20
             },
-          },
-        ],
-      },
-    },
+            children: 'Generated by TouchlineBoard • Official XI'
+          }
+        }
+      ]
+    }
   };
+
+  return { width: 1200, height: totalHeight, node: bgShell(1200, totalHeight, content) };
+}
+
+function renderMatchStatsCard(d) {
+  const stats = Array.isArray(d.stats) ? d.stats.slice(0, 6) : [];
+
+  const content = {
+    type: 'div',
+    props: {
+      style: { display: 'flex', flexDirection: 'column', height: '100%' },
+      children: [
+        brandHeader('Match Stats'),
+        {
+          type: 'div',
+          props: {
+            style: {
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 18
+            },
+            children: [
+              {
+                type: 'div',
+                props: {
+                  style: { display: 'flex', alignItems: 'center', gap: 10 },
+                  children: [
+                    d.homeLogo
+                      ? {
+                          type: 'img',
+                          props: {
+                            src: safeString(d.homeLogo),
+                            width: 42,
+                            height: 42,
+                            style: { width: 42, height: 42, objectFit: 'contain' }
+                          }
+                        }
+                      : null,
+                    { type: 'div', props: { style: { fontSize: 34, fontWeight: 700 }, children: safeString(d.homeTeam, 'Home') } }
+                  ].filter(Boolean)
+                }
+              },
+              {
+                type: 'div',
+                props: {
+                  style: { fontSize: 72, fontWeight: 700, color: '#ffffff' },
+                  children: safeString(d.homeGoals, '0') + ' - ' + safeString(d.awayGoals, '0')
+                }
+              },
+              {
+                type: 'div',
+                props: {
+                  style: { display: 'flex', alignItems: 'center', gap: 10 },
+                  children: [
+                    { type: 'div', props: { style: { fontSize: 34, fontWeight: 700 }, children: safeString(d.awayTeam, 'Away') } },
+                    d.awayLogo
+                      ? {
+                          type: 'img',
+                          props: {
+                            src: safeString(d.awayLogo),
+                            width: 42,
+                            height: 42,
+                            style: { width: 42, height: 42, objectFit: 'contain' }
+                          }
+                        }
+                      : null
+                  ].filter(Boolean)
+                }
+              }
+            ]
+          }
+        },
+        {
+          type: 'div',
+          props: {
+            style: {
+              borderRadius: 16,
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              padding: '12px 14px',
+              marginBottom: 12,
+              fontSize: 24,
+              color: '#A3B3CF',
+              textAlign: 'center'
+            },
+            children: safeString(d.league, '') + (d.venue ? ' • ' + safeString(d.venue) : '')
+          }
+        },
+        {
+          type: 'div',
+          props: {
+            style: { display: 'flex', flexDirection: 'column', gap: 10 },
+            children: stats.map((s) => {
+              const hp = Math.max(0, Math.min(100, toNumber(s.homePercent, 50)));
+              const ap = 100 - hp;
+              return {
+                type: 'div',
+                props: {
+                  style: {
+                    borderRadius: 12,
+                    background: 'rgba(0,0,0,0.28)',
+                    padding: '8px 12px',
+                    display: 'flex',
+                    flexDirection: 'column'
+                  },
+                  children: [
+                    {
+                      type: 'div',
+                      props: {
+                        style: {
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          marginBottom: 6,
+                          fontSize: 22
+                        },
+                        children: [
+                          safeString(s.home, '0'),
+                          safeString(s.label, '-'),
+                          safeString(s.away, '0')
+                        ]
+                      }
+                    },
+                    {
+                      type: 'div',
+                      props: {
+                        style: {
+                          height: 10,
+                          borderRadius: 999,
+                          background: 'rgba(255,255,255,0.1)',
+                          overflow: 'hidden',
+                          display: 'flex'
+                        },
+                        children: [
+                          {
+                            type: 'div',
+                            props: {
+                              style: { width: hp + '%', height: '100%', background: '#00ff95' }
+                            }
+                          },
+                          {
+                            type: 'div',
+                            props: {
+                              style: { width: ap + '%', height: '100%', background: '#00b7ff' }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              };
+            })
+          }
+        }
+      ]
+    }
+  };
+
+  return { width: 1200, height: 880, node: bgShell(1200, 880, content) };
+}
+
+function buildCard(type, data) {
+  if (type === 'lineup') return renderLineupCard(data);
+  if (type === 'stats') return renderMatchStatsCard(data);
+  return renderPlayerCard(data);
 }
 
 export default async function handler(req, res) {
   try {
-    const { type, data } = req.query;
-    const d = safeParseData(data);
+    const { default: satori } = await import('satori');
+    const sharpModule = await import('sharp');
+    const sharp = sharpModule.default || sharpModule;
 
-    const regularFont = await fetchFirstFont([
-      'https://cdn.jsdelivr.net/gh/google/fonts/ofl/notosans/static/NotoSans-Regular.ttf',
-      'https://cdn.jsdelivr.net/gh/google/fonts/apache/notosans/NotoSans-Regular.ttf',
-      'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hjp-Ek-_EeA.woff',
-    ]);
+    const type = safeString(req.query.type || 'player').toLowerCase();
+    const data = parseData(req.query.data);
+    const card = buildCard(type, data);
+    const fonts = await loadFonts();
 
-    const boldFont = await fetchFirstFont([
-      'https://cdn.jsdelivr.net/gh/google/fonts/ofl/notosans/static/NotoSans-Bold.ttf',
-      'https://cdn.jsdelivr.net/gh/google/fonts/apache/notosans/NotoSans-Bold.ttf',
-      'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuGKYAZ9hjp-Ek-_EeA.woff',
-    ]);
-
-    let view;
-    if (type === 'player') view = renderPlayerCard(d);
-    else if (type === 'lineup') view = renderLineupCard(d);
-    else view = renderMatchCard(d);
-
-    const svg = await satori(view.tree, {
-      width: view.width,
-      height: view.height,
-      fonts: [
-        { name: 'Noto Sans', data: regularFont, style: 'normal', weight: 400 },
-        { name: 'Noto Sans', data: boldFont, style: 'normal', weight: 700 },
-      ],
+    const svg = await satori(card.node, {
+      width: card.width,
+      height: card.height,
+      fonts
     });
 
-    const png = await sharp(Buffer.from(svg)).png().toBuffer();
+    const png = await sharp(Buffer.from(svg)).png({ compressionLevel: 9, quality: 100 }).toBuffer();
+
     res.setHeader('Content-Type', 'image/png');
-    res.setHeader('Cache-Control', 'public, max-age=60');
-    res.send(png);
+    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300');
+    res.status(200).send(png);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
