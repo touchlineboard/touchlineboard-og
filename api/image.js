@@ -24,7 +24,7 @@ export default async function handler(req, res) {
       props: {
         style: {
           width: 600,
-          height: 700,
+          height: 680,
           background: 'linear-gradient(135deg, #0d1117 0%, #161b22 50%, #0d1117 100%)',
           display: 'flex',
           flexDirection: 'column',
@@ -113,11 +113,10 @@ export default async function handler(req, res) {
                 {
                   type: 'div',
                   props: {
-                    style: { display: 'flex', flexDirection: 'column', alignItems: 'center', width: 170 },
+                    style: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 170, height: 60 },
                     children: [
-                      { type: 'span', props: { style: { fontSize: 20, fontWeight: 'bold', textAlign: 'center', color: homeWin ? '#fff' : '#888' }, children: d.homeTeam || 'Home' } },
-                      homeWin ? { type: 'div', props: { style: { display: 'flex', marginTop: 8, padding: '3px 10px', borderRadius: 12, backgroundColor: 'rgba(0,255,136,0.15)' }, children: { type: 'span', props: { style: { fontSize: 9, color: '#00ff88', textTransform: 'uppercase', letterSpacing: 1 }, children: 'Winner' } } } } : null
-                    ].filter(Boolean)
+                      { type: 'span', props: { style: { fontSize: 20, fontWeight: 'bold', textAlign: 'center', color: homeWin ? '#fff' : '#888' }, children: d.homeTeam || 'Home' } }
+                    ]
                   }
                 },
                 // Score box
@@ -136,11 +135,10 @@ export default async function handler(req, res) {
                 {
                   type: 'div',
                   props: {
-                    style: { display: 'flex', flexDirection: 'column', alignItems: 'center', width: 170 },
+                    style: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 170, height: 60 },
                     children: [
-                      { type: 'span', props: { style: { fontSize: 20, fontWeight: 'bold', textAlign: 'center', color: awayWin ? '#fff' : '#888' }, children: d.awayTeam || 'Away' } },
-                      awayWin ? { type: 'div', props: { style: { display: 'flex', marginTop: 8, padding: '3px 10px', borderRadius: 12, backgroundColor: 'rgba(0,255,136,0.15)' }, children: { type: 'span', props: { style: { fontSize: 9, color: '#00ff88', textTransform: 'uppercase', letterSpacing: 1 }, children: 'Winner' } } } } : null
-                    ].filter(Boolean)
+                      { type: 'span', props: { style: { fontSize: 20, fontWeight: 'bold', textAlign: 'center', color: awayWin ? '#fff' : '#888' }, children: d.awayTeam || 'Away' } }
+                    ]
                   }
                 }
               ]
@@ -193,7 +191,7 @@ export default async function handler(req, res) {
                                   children: { type: 'div', props: { style: { width: `${stat.homePercent}%`, height: '100%', backgroundColor: homeColor, borderRadius: 3 }, children: '' } }
                                 }
                               },
-                              { type: 'span', props: { style: { width: 75, fontSize: 9, color: '#666', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.5 }, children: stat.label } },
+                              { type: 'span', props: { style: { width: 80, fontSize: 9, color: '#666', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.5, lineHeight: 1.2 }, children: stat.label } },
                               {
                                 type: 'div',
                                 props: {
@@ -230,7 +228,7 @@ export default async function handler(req, res) {
     
     const svg = await satori(card, {
       width: 600,
-      height: 700,
+      height: 680,
       fonts: [
         { name: 'Inter', data: fontData, style: 'normal', weight: 400 },
         { name: 'Inter', data: fontBoldData, style: 'normal', weight: 700 }
