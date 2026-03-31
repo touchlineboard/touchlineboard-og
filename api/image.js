@@ -405,9 +405,7 @@ function renderPlayerCard(d) {
 function renderLineupCard(d) {
   const homeXI = Array.isArray(d.homeXI) ? d.homeXI.slice(0, 11) : [];
   const awayXI = Array.isArray(d.awayXI) ? d.awayXI.slice(0, 11) : [];
-  const rows = Math.max(homeXI.length, awayXI.length, 11);
-  const rowHeight = 42;
-  const totalHeight = Math.min(1320, 420 + rows * rowHeight + 140);
+  const totalHeight = 960;
 
   const lineupCol = (title, formation, players) => ({
     type: 'div',
@@ -419,7 +417,7 @@ function renderLineupCard(d) {
         borderRadius: 18,
         border: '1px solid rgba(255,255,255,0.08)',
         background: 'rgba(255,255,255,0.03)',
-        padding: '14px 14px 10px 14px'
+        padding: '14px 14px 12px 14px'
       },
       children: [
         {
@@ -458,14 +456,13 @@ function renderLineupCard(d) {
             style: {
               display: 'flex',
               flexDirection: 'column',
-              gap: 6,
-              flex: 1
+              gap: 6
             },
             children: Array.from({ length: 11 }).map((_, i) => ({
               type: 'div',
               props: {
                 style: {
-                  minHeight: 34,
+                  minHeight: 36,
                   borderRadius: 10,
                   background: 'rgba(0,0,0,0.28)',
                   display: 'flex',
@@ -486,7 +483,7 @@ function renderLineupCard(d) {
   const content = {
     type: 'div',
     props: {
-      style: { display: 'flex', flexDirection: 'column', height: '100%' },
+      style: { display: 'flex', flexDirection: 'column' },
       children: [
         brandHeader('Official Lineups'),
         {
@@ -604,15 +601,24 @@ function renderLineupCard(d) {
           type: 'div',
           props: {
             style: {
+              borderRadius: 12,
+              background: 'rgba(0,0,0,0.28)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              padding: '8px 12px',
               display: 'flex',
-              justifyContent: 'space-between',
-              gap: 12,
-              fontSize: 22,
-              color: '#9AABC8'
+              flexDirection: 'column',
+              gap: 4,
+              marginBottom: 8
             },
             children: [
-              'Venue: ' + safeString(d.venue, 'N/A'),
-              'Referee: ' + safeString(d.referee, 'N/A')
+              {
+                type: 'div',
+                props: { style: { fontSize: 20, color: '#9AABC8' }, children: 'Venue: ' + safeString(d.venue, 'N/A') }
+              },
+              {
+                type: 'div',
+                props: { style: { fontSize: 20, color: '#9AABC8' }, children: 'Referee: ' + safeString(d.referee, 'N/A') }
+              }
             ]
           }
         },
@@ -620,7 +626,6 @@ function renderLineupCard(d) {
           type: 'div',
           props: {
             style: {
-              marginTop: 8,
               textAlign: 'center',
               color: '#7A8AA8',
               fontSize: 20
