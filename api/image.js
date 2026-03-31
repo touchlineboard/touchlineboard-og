@@ -40,9 +40,6 @@ function normalizeSatoriTree(node) {
     if (!style.display) {
       style.display = 'flex';
     }
-    if (style.display === 'flex' && !style.flexDirection) {
-      style.flexDirection = 'column';
-    }
     props.style = style;
   }
 
