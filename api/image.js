@@ -7,8 +7,8 @@ export default async function handler(req, res) {
   try {
     const html = req.query.html || 'Test';
     
-    const fontResponse = await fetch('https://github.com/google/fonts/raw/main/ofl/inter/Inter%5Bslnt%2Cwght%5D.ttf');
-    const fontData = await fontResponse.arrayBuffer();
+    const fontRes = await fetch('https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-400-normal.woff2');
+    const fontData = await fontRes.arrayBuffer();
 
     const svg = await satori(
       {
@@ -32,7 +32,8 @@ export default async function handler(req, res) {
         fonts: [{
           name: 'Inter',
           data: fontData,
-          style: 'normal'
+          style: 'normal',
+          weight: 400
         }]
       }
     );
