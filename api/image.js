@@ -142,6 +142,7 @@ function brandHeader(tagText) {
 function renderPlayerCard(d) {
   const stats = Array.isArray(d.statItems) ? d.statItems.slice(0, 8) : [];
   while (stats.length < 8) stats.push({ label: '-', value: '0' });
+  const statRows = [stats.slice(0, 4), stats.slice(4, 8)];
 
   const rating = toNumber(d.rating, 0);
   const ratingColor = rating >= 8 ? '#1BFFB4' : rating >= 7 ? '#35D7FF' : '#FF5A8A';
@@ -345,43 +346,51 @@ function renderPlayerCard(d) {
           props: {
             style: {
               display: 'flex',
-              flexWrap: 'wrap',
-              justifyContent: 'space-between',
+              flexDirection: 'column',
               marginBottom: 12
             },
-            children: stats.map((s) => ({
+            children: statRows.map((row, rowIndex) => ({
               type: 'div',
               props: {
                 style: {
-                  width: 270,
-                  borderRadius: 16,
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  background: 'rgba(0,0,0,0.28)',
                   display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '12px 10px',
-                  minHeight: 100,
-                  marginBottom: 12,
-                  boxSizing: 'border-box'
+                  justifyContent: 'space-between',
+                  marginBottom: rowIndex === statRows.length - 1 ? 0 : 12
                 },
-                children: [
-                  {
-                    type: 'div',
-                    props: {
-                      style: { fontSize: 42, fontWeight: 700, color: '#FFD93D', lineHeight: 1.05 },
-                      children: safeString(s.value, '0')
-                    }
-                  },
-                  {
-                    type: 'div',
-                    props: {
-                      style: { fontSize: 22, color: '#98A7C4', marginTop: 2 },
-                      children: safeString(s.label, '-')
-                    }
+                children: row.map((s) => ({
+                  type: 'div',
+                  props: {
+                    style: {
+                      width: 270,
+                      borderRadius: 16,
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      background: 'rgba(0,0,0,0.28)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '12px 10px',
+                      minHeight: 100,
+                      boxSizing: 'border-box'
+                    },
+                    children: [
+                      {
+                        type: 'div',
+                        props: {
+                          style: { fontSize: 42, fontWeight: 700, color: '#FFD93D', lineHeight: 1.05 },
+                          children: safeString(s.value, '0')
+                        }
+                      },
+                      {
+                        type: 'div',
+                        props: {
+                          style: { fontSize: 22, color: '#98A7C4', marginTop: 2 },
+                          children: safeString(s.label, '-')
+                        }
+                      }
+                    ]
                   }
-                ]
+                }))
               }
             }))
           }
